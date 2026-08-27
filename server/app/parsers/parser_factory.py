@@ -37,7 +37,7 @@ class ParserFactory:
             if ".ejs" not in cls._parsers:
                 cls._parsers[".ejs"] = HtmlEjsParser()
             return cls._parsers[".ejs"]
-        elif ext in (".css", ".scss", ".json", ".sql", ".go", ".rs", ".php", ".rb", ".c", ".cpp", ".h", ".md", ".env"):
+        elif ext in (".css", ".scss", ".json", ".sql", ".go", ".rs", ".php", ".rb", ".c", ".cpp", ".h", ".md"):
             if "generic" not in cls._parsers:
                 cls._parsers["generic"] = GenericFileParser()
             return cls._parsers["generic"]
@@ -45,9 +45,16 @@ class ParserFactory:
 
     @classmethod
     def is_supported(cls, file_name: str) -> bool:
+        lower_name = file_name.lower()
+        # Security: Never process or index sensitive files or credential patterns
+        if lower_name.startswith(".env") or lower_name in ("id_rsa", "id_dsa", "id_ed25519", "credentials.json", "secrets.json"):
+            return False
+        if any(lower_name.endswith(pat) for pat in (".pem", ".key", ".pfx", ".p12", ".cer")):
+            return False
+
         supported_exts = {
             ".py", ".java", ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx",
             ".ejs", ".html", ".htm", ".vue", ".svelte",
-            ".css", ".scss", ".json", ".sql", ".go", ".rs", ".php", ".rb", ".c", ".cpp", ".h"
+            ".css", ".scss", ".json", ".sql", ".go", ".rs", ".php", ".rb", ".c", ".cpp", ".h", ".md"
         }
-        return any(file_name.lower().endswith(ext) for ext in supported_exts)
+        return any(lower_name.endswith(ext) for ext in supported_exts)

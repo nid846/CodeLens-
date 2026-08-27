@@ -80,6 +80,7 @@ class RepositoryAnalyzer:
             java_packages: Dict[str, str] = {}
             class_to_file: Dict[str, str] = {}
 
+            file_contents: Dict[str, str] = {}
             for root, dirs, filenames in os.walk(temp_dir):
                 dirs[:] = [d for d in dirs if d not in IGNORED_DIRS and not d.startswith(".")]
 
@@ -97,6 +98,7 @@ class RepositoryAnalyzer:
                         with open(abs_path, "r", encoding="utf-8", errors="ignore") as f:
                             content = f.read()
 
+                        file_contents[rel_path_normalized] = content
                         parser = ParserFactory.get_parser(ext)
                         if not parser:
                             continue
@@ -138,7 +140,7 @@ class RepositoryAnalyzer:
                 total_dependencies=len(dependencies),
             )
 
-            return AnalysisResult(
+            result = AnalysisResult(
                 repository=repo_info,
                 summary=summary,
                 files=all_files,
@@ -148,6 +150,27 @@ class RepositoryAnalyzer:
                 graph=graph_data,
                 failed_files=failed_files,
             )
+
+            # Module 2: Code Chunking & Incremental Indexing
+            try:
+                from app.services.chunking_service import ChunkingService
+                from app.services.search_service import search_service
+
+                chunks = ChunkingService.extract_chunks_from_analysis(
+                    analysis_result=result,
+                    file_contents=file_contents,
+                    repository_id=repo_info.url,
+                )
+                search_service.index_repository_chunks(
+                    repository_id=repo_info.url,
+                    new_chunks=chunks,
+                )
+            except Exception as e:
+                # Log indexing failure without breaking Module 1 analysis response
+                import logging
+                logging.getLogger(__name__).warning(f"Search indexing failed: {str(e)}")
+
+            return result
 
         finally:
             if os.path.exists(temp_dir):

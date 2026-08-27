@@ -30,3 +30,19 @@ export const checkHealth = async () => {
     return { status: 'error', message: error.message };
   }
 };
+
+export const searchCode = async (repositoryId, query, topK = 10) => {
+  try {
+    const response = await apiClient.post('/search', {
+      repository_id: repositoryId,
+      query: query,
+      top_k: topK,
+    });
+    return response.data;
+  } catch (error) {
+    if (error.response && error.response.data && error.response.data.detail) {
+      throw new Error(error.response.data.detail);
+    }
+    throw new Error(error.message || 'Failed to perform code search.');
+  }
+};

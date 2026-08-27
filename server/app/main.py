@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routes import analysis
+from app.api.routes import analysis, search
 
 app = FastAPI(
     title="CodeLens API",
@@ -18,6 +18,7 @@ app.add_middleware(
 )
 
 app.include_router(analysis.router, prefix="/api", tags=["Analysis"])
+app.include_router(search.router, prefix="/api", tags=["Search"])
 
 
 @app.get("/")
@@ -26,4 +27,5 @@ def root():
         "name": "CodeLens API",
         "health_endpoint": "/api/health",
         "analyze_endpoint": "/api/analyze",
+        "search_endpoint": "/api/search",
     }
